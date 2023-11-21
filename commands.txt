@@ -1,0 +1,363 @@
+/////Open a command terminal with in Final-Project folder, let's call this terminal as host terminal
+
+docker-compose -f docker/docker-compose-ca.yaml up -d
+
+sudo chmod -R 777 organizations/
+
+------------Register and enroll the users for each organization—-----------
+
+//Build the registerEnroll.sh script file
+
+chmod +x registerEnroll.sh
+
+./registerEnroll.sh
+
+—-------------Build the infrastructure—-----------------
+
+//Build the docker-compose-3org.yaml in the docker folder
+
+docker-compose -f docker/docker-compose-3org.yaml up -d
+
+-------------Generate the genesis block—-------------------------------
+
+//Build the configtx.yaml file in the config folder
+
+export FABRIC_CFG_PATH=./config
+
+export CHANNEL_NAME=ticketchannel
+
+configtxgen -profile ThreeOrgsChannel -outputBlock ./channel-artifacts/${CHANNEL_NAME}.block -channelID $CHANNEL_NAME
+
+------ Create the application channel------
+
+export ORDERER_CA=./organizations/ordererOrganizations/ticket.com/orderers/orderer.ticket.com/msp/tlscacerts/tlsca.ticket.com-cert.pem
+
+export ORDERER_ADMIN_TLS_SIGN_CERT=./organizations/ordererOrganizations/ticket.com/orderers/orderer.ticket.com/tls/server.crt
+
+export ORDERER_ADMIN_TLS_PRIVATE_KEY=./organizations/ordererOrganizations/ticket.com/orderers/orderer.ticket.com/tls/server.key
+
+osnadmin channel join --channelID $CHANNEL_NAME --config-block ./channel-artifacts/$CHANNEL_NAME.block -o localhost:7053 --ca-file $ORDERER_CA --client-cert $ORDERER_ADMIN_TLS_SIGN_CERT --client-key $ORDERER_ADMIN_TLS_PRIVATE_KEY
+
+osnadmin channel list -o localhost:7053 --ca-file $ORDERER_CA --client-cert $ORDERER_ADMIN_TLS_SIGN_CERT --client-key $ORDERER_ADMIN_TLS_PRIVATE_KEY
+
+/////Open another terminal with in ticket-network folder, let's call this terminal as peer0_organiser terminal.
+
+############## peer0_organiser terminal ##############
+
+// Build the core.yaml in peercfg folder
+
+
+export FABRIC_CFG_PATH=./peercfg
+export CHANNEL_NAME=ticketchannel
+export CORE_PEER_LOCALMSPID=organiserMSP
+export CORE_PEER_TLS_ENABLED=true
+export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/organiser.ticket.com/peers/peer0.organiser.ticket.com/tls/ca.crt
+export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/organiser.ticket.com/users/Admin@organiser.ticket.com/msp
+export CORE_PEER_ADDRESS=localhost:7051
+export ORDERER_CA=${PWD}/organizations/ordererOrganizations/ticket.com/orderers/orderer.ticket.com/msp/tlscacerts/tlsca.ticket.com-cert.pem
+export ORG1_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/organiser.ticket.com/peers/peer0.organiser.ticket.com/tls/ca.crt
+export ORG2_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/reseller.ticket.com/peers/peer0.reseller.ticket.com/tls/ca.crt
+export ORG3_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/attendee.ticket.com/peers/peer0.attendee.ticket.com/tls/ca.crt
+
+
+
+—---------------Join peer to the channel—-------------
+
+peer channel join -b ./channel-artifacts/$CHANNEL_NAME.block
+
+peer channel list
+
+/////Open another terminal with in ticket-network folder, let's call this terminal as peer0_reseller terminal.
+
+############## peer0_reseller terminal ##############
+
+export FABRIC_CFG_PATH=./peercfg
+export CHANNEL_NAME=ticketchannel
+export CORE_PEER_LOCALMSPID=resellerMSP
+export CORE_PEER_TLS_ENABLED=true
+export CORE_PEER_ADDRESS=localhost:9051
+export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/reseller.ticket.com/peers/peer0.reseller.ticket.com/tls/ca.crt
+export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/reseller.ticket.com/users/Admin@reseller.ticket.com/msp
+export ORDERER_CA=${PWD}/organizations/ordererOrganizations/ticket.com/orderers/orderer.ticket.com/msp/tlscacerts/tlsca.ticket.com-cert.pem
+export ORG1_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/organiser.ticket.com/peers/peer0.organiser.ticket.com/tls/ca.crt
+export ORG2_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/reseller.ticket.com/peers/peer0.reseller.ticket.com/tls/ca.crt
+export ORG3_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/attendee.ticket.com/peers/peer0.attendee.ticket.com/tls/ca.crt
+
+—---------------Join peer to the channel—-------------
+
+peer channel join -b ./channel-artifacts/$CHANNEL_NAME.block
+
+peer channel list
+
+/////Open another terminal with in ticket-network folder, let's call this terminal as peer0_attendee terminal.
+
+############## peer0_attendee terminal ##############
+
+export FABRIC_CFG_PATH=./peercfg
+export CHANNEL_NAME=ticketchannel
+export CORE_PEER_LOCALMSPID=attendeeMSP
+export CORE_PEER_TLS_ENABLED=true
+export CORE_PEER_ADDRESS=localhost:11051
+export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/attendee.ticket.com/peers/peer0.attendee.ticket.com/tls/ca.crt
+export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/attendee.ticket.com/users/Admin@attendee.ticket.com/msp
+export ORDERER_CA=${PWD}/organizations/ordererOrganizations/ticket.com/orderers/orderer.ticket.com/msp/tlscacerts/tlsca.ticket.com-cert.pem
+export ORG1_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/organiser.ticket.com/peers/peer0.organiser.ticket.com/tls/ca.crt
+export ORG2_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/reseller.ticket.com/peers/peer0.reseller.ticket.com/tls/ca.crt
+export ORG3_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/attendee.ticket.com/peers/peer0.attendee.ticket.com/tls/ca.crt
+
+—---------------Join peer to the channel—-------------
+
+peer channel join -b ./channel-artifacts/$CHANNEL_NAME.block
+
+peer channel list
+
+—-------------anchor peer update—-----------
+
+############## peer0_organiser terminal ##############
+
+peer channel fetch config channel-artifacts/config_block.pb -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com -c $CHANNEL_NAME --tls --cafile $ORDERER_CA
+
+cd channel-artifacts
+
+configtxlator proto_decode --input config_block.pb --type common.Block --output config_block.json
+jq '.data.data[0].payload.data.config' config_block.json > config.json
+
+cp config.json config_copy.json
+
+jq '.channel_group.groups.Application.groups.organiserMSP.values += {"AnchorPeers":{"mod_policy": "Admins","value":{"anchor_peers": [{"host": "peer0.organiser.ticket.com","port": 7051}]},"version": "0"}}' config_copy.json > modified_config.json
+
+configtxlator proto_encode --input config.json --type common.Config --output config.pb
+configtxlator proto_encode --input modified_config.json --type common.Config --output modified_config.pb
+configtxlator compute_update --channel_id ${CHANNEL_NAME} --original config.pb --updated modified_config.pb --output config_update.pb
+
+configtxlator proto_decode --input config_update.pb --type common.ConfigUpdate --output config_update.json
+echo '{"payload":{"header":{"channel_header":{"channel_id":"'$CHANNEL_NAME'", "type":2}},"data":{"config_update":'$(cat config_update.json)'}}}' | jq . > config_update_in_envelope.json
+configtxlator proto_encode --input config_update_in_envelope.json --type common.Envelope --output config_update_in_envelope.pb
+
+cd ..
+
+peer channel update -f channel-artifacts/config_update_in_envelope.pb -c $CHANNEL_NAME -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA
+
+############## peer0_reseller terminal ##############
+
+peer channel fetch config channel-artifacts/config_block.pb -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com -c $CHANNEL_NAME --tls --cafile $ORDERER_CA
+
+cd channel-artifacts
+
+configtxlator proto_decode --input config_block.pb --type common.Block --output config_block.json
+jq '.data.data[0].payload.data.config' config_block.json > config.json
+cp config.json config_copy.json
+
+jq '.channel_group.groups.Application.groups.resellerMSP.values += {"AnchorPeers":{"mod_policy": "Admins","value":{"anchor_peers": [{"host": "peer0.reseller.ticket.com","port": 9051}]},"version": "0"}}' config_copy.json > modified_config.json
+
+configtxlator proto_encode --input config.json --type common.Config --output config.pb
+configtxlator proto_encode --input modified_config.json --type common.Config --output modified_config.pb
+configtxlator compute_update --channel_id $CHANNEL_NAME --original config.pb --updated modified_config.pb --output config_update.pb
+
+configtxlator proto_decode --input config_update.pb --type common.ConfigUpdate --output config_update.json
+echo '{"payload":{"header":{"channel_header":{"channel_id":"'$CHANNEL_NAME'", "type":2}},"data":{"config_update":'$(cat config_update.json)'}}}' | jq . > config_update_in_envelope.json
+configtxlator proto_encode --input config_update_in_envelope.json --type common.Envelope --output config_update_in_envelope.pb
+
+cd ..
+
+peer channel update -f channel-artifacts/config_update_in_envelope.pb -c $CHANNEL_NAME -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA
+
+############## peer0_attendee terminal ##############
+
+peer channel fetch config channel-artifacts/config_block.pb -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com -c $CHANNEL_NAME --tls --cafile $ORDERER_CA
+
+cd channel-artifacts
+
+configtxlator proto_decode --input config_block.pb --type common.Block --output config_block.json
+jq '.data.data[0].payload.data.config' config_block.json > config.json
+cp config.json config_copy.json
+
+jq '.channel_group.groups.Application.groups.attendeeMSP.values += {"AnchorPeers":{"mod_policy": "Admins","value":{"anchor_peers": [{"host": "peer0.attendee.ticket.com","port": 11051}]},"version": "0"}}' config_copy.json > modified_config.json
+
+configtxlator proto_encode --input config.json --type common.Config --output config.pb
+configtxlator proto_encode --input modified_config.json --type common.Config --output modified_config.pb
+configtxlator compute_update --channel_id $CHANNEL_NAME --original config.pb --updated modified_config.pb --output config_update.pb
+
+configtxlator proto_decode --input config_update.pb --type common.ConfigUpdate --output config_update.json
+echo '{"payload":{"header":{"channel_header":{"channel_id":"'$CHANNEL_NAME'", "type":2}},"data":{"config_update":'$(cat config_update.json)'}}}' | jq . > config_update_in_envelope.json
+configtxlator proto_encode --input config_update_in_envelope.json --type common.Envelope --output config_update_in_envelope.pb
+
+cd ..
+
+peer channel update -f channel-artifacts/config_update_in_envelope.pb -c $CHANNEL_NAME -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA
+
+peer channel getinfo -c $CHANNEL_NAME
+
+—-----------------Chaincode lifecycle—-------------------
+
+//Build the chaincode (Change MSPId and collection file)
+
+/// Make sure that KBA-ticket chaincode is available in Chaincode folder which is in the same location of ticket-network.
+
+############## peer0_organiser terminal ##############
+
+peer lifecycle chaincode package finalproject.tar.gz --path ../Chaincode/ --lang golang --label finalproject_1.0
+
+peer lifecycle chaincode install finalproject.tar.gz
+
+peer lifecycle chaincode queryinstalled
+
+export CC_PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid finalproject.tar.gz)
+
+############## peer0_reseller terminal ##############
+
+peer lifecycle chaincode install finalproject.tar.gz
+
+export CC_PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid finalproject.tar.gz)
+
+
+############## peer0_attendee terminal ##############
+
+peer lifecycle chaincode install finalproject.tar.gz
+
+export CC_PACKAGE_ID=$(peer lifecycle chaincode calculatepackageid finalproject.tar.gz)
+
+############## peer0_organiser terminal ##############
+
+
+peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --channelID $CHANNEL_NAME --name Final-Project --version 1.0 --collections-config ../Chaincode/collection.json --package-id $CC_PACKAGE_ID --sequence 1 --tls --cafile $ORDERER_CA --waitForEvent
+
+############## peer0_reseller terminal ##############
+
+peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --channelID $CHANNEL_NAME --name Final-Project --version 1.0 --collections-config ../Chaincode/collection.json --package-id $CC_PACKAGE_ID --sequence 1 --tls --cafile $ORDERER_CA --waitForEvent
+
+############## peer0_attendee terminal ##############
+
+peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --channelID $CHANNEL_NAME --name Final-Project --version 1.0 --collections-config ../Chaincode/collection.json --package-id $CC_PACKAGE_ID --sequence 1 --tls --cafile $ORDERER_CA --waitForEvent
+
+############## peer0_organiser terminal ##############
+
+
+peer lifecycle chaincode checkcommitreadiness --channelID $CHANNEL_NAME --name Final-Project --version 1.0 --sequence 1 --collections-config ../Chaincode/collection.json --tls --cafile $ORDERER_CA --output json
+
+peer lifecycle chaincode commit -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --channelID $CHANNEL_NAME --name Final-Project --version 1.0 --sequence 1 --collections-config ../Chaincode/collection.json --tls --cafile $ORDERER_CA --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT --peerAddresses localhost:11051 --tlsRootCertFiles $ORG3_PEER_TLSROOTCERT
+
+peer lifecycle chaincode querycommitted --channelID $CHANNEL_NAME --name Final-Project --cafile $ORDERER_CA
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C ticketchannel -n Final-Project --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT -c '{"function":"CreateTicket","Args":["T1", "Concert", "Event01", "Organiser", "22/09/2023","500.00" ]}'
+
+peer chaincode query -C ticketchannel -n Final-Project -c '{"Args":["ReadTicket", "T1"]}'
+
+peer chaincode query -C $CHANNEL_NAME -n Final-Project -c '{"Args":["GetAllTickets"]}'
+
+#################peer0 reseller terminal ##################
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C ticketchannel -n Final-Project --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT -c '{"function":"SellTicket","Args":["T2", "Riya", "879845799","600"]}'
+
+#################peer0 attendee terminal ##################
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C ticketchannel -n Final-Project --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT -c '{"function":"TransferTicket","Args":["T1", "Samridhi", "879845789"]}'
+
+--------Invoke Private Transaction----------
+
+############## peer0_reseller terminal ##############
+
+export MAKE=$(echo -n "GarbaNight" | base64 | tr -d \\n)
+
+export EVENTID=$(echo -n "E02" | base64 | tr -d \\n)
+
+export PRICE=$(echo -n "700" | base64 | tr -d \\n)
+
+export RESELLER_NAME=$(echo -n "XXX" | base64 | tr -d \\n)
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C $CHANNEL_NAME -n Final-Project --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT --peerAddresses localhost:11051 --tlsRootCertFiles $ORG3_PEER_TLSROOTCERT -c '{"Args":["CreateOrder","ORD201"]}' --transient "{\"make\":\"$MAKE\",\"eventid\":\"$EVENTID\",\"price\":\"$PRICE\",\"resellerName\":\"$reseller_NAME\"}"
+
+peer chaincode query -C $CHANNEL_NAME -n Final-Project -c '{"Args":["ReadOrder","ORD201"]}'
+
+
+-----------------Invoke tickets---------------------
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C ticketchannel -n Final-Project --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT -c '{"function":"CreateTicket","Args":["T-01", "Concert", "Event01", "Organiser", "22/09/2023","500.00" ]}'
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C ticketchannel -n Final-Project --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT -c '{"function":"CreateTicket","Args":["T-02", "Concert", "Event01", "Organiser", "22/09/2023","500.00" ]}'
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C ticketchannel -n Final-Project --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT -c '{"function":"CreateTicket","Args":["T-03", "Concert", "Event01", "Organiser", "22/09/2023","500.00" ]}'
+
+-------------------------Run Queries-----------------------
+
+peer chaincode query -C ticketchannel -n Final-Project -c '{"Args":["GetTicketsByRange", "T-01", "T-03"]}'
+
+peer chaincode query -C ticketchannel -n Final-Project -c '{"Args":["GetTicketHistory", "T-01"]}'
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C ticketchannel -n Final-Project --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT -c '{"Args":["DeleteTicket","T-01"]}'
+
+
+
+--------- Stop the Fabric-Network --------------
+
+############## host terminal ##############
+
+docker-compose -f docker/docker-compose-3org.yaml down
+
+docker-compose -f docker/docker-compose-ca.yaml down
+
+docker rm -f $(docker ps -a | awk '($2 ~ /dev-peer.*/) {print $1}')
+
+docker volume rm $(docker volume ls -q)
+
+sudo rm -rf organizations/
+
+sudo rm -rf channel-artifacts/
+
+sudo rm finalproject.tar.gz
+
+docker ps -a
+
+// if there still exists the containers then execute the following commands.
+
+docker rm $(docker container ls -q) --force
+
+docker container prune
+
+docker system prune
+
+docker volume prune
+
+docker network prune
+
+///Run using startNetwork.sh script
+
+//Build startNetwork.sh script file
+
+chmod +x startNetwork.sh
+
+./startNetwork.sh
+
+//To submit transaction as organiserMSP
+
+export CHANNEL_NAME=ticketchannel
+export FABRIC_CFG_PATH=./peercfg
+export CORE_PEER_LOCALMSPID=organiserMSP
+export CORE_PEER_TLS_ENABLED=true
+export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/organiser.ticket.com/peers/peer0.organiser.ticket.com/tls/ca.crt
+export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/organiser.ticket.com/users/Admin@organiser.ticket.com/msp
+export CORE_PEER_ADDRESS=localhost:7051
+export ORDERER_CA=${PWD}/organizations/ordererOrganizations/ticket.com/orderers/orderer.ticket.com/msp/tlscacerts/tlsca.ticket.com-cert.pem
+export ORG1_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/organiser.ticket.com/peers/peer0.organiser.ticket.com/tls/ca.crt
+export ORG2_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/reseller.ticket.com/peers/peer0.reseller.ticket.com/tls/ca.crt
+export ORG3_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/attendee.ticket.com/peers/peer0.attendee.ticket.com/tls/ca.crt
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C $CHANNEL_NAME -n KBA-ticket --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT --peerAddresses localhost:11051 --tlsRootCertFiles $ORG3_PEER_TLSROOTCERT -c '{"function":"CreateTicket","Args":["T2", "Concert", "Event01", "Organiser", "22/09/2023","500.00" ]}'
+
+peer chaincode query -C $CHANNEL_NAME -n KBA-ticket -c '{"Args":["GetAllTickets"]}'
+
+//To stop the network using script file
+
+//Build stopNetwork.sh script file
+
+chmod +x stopNetwork.sh
+
+./stopNetwork.sh
+
+------update chaincode--------------
+
+./startNetwork.sh deployCC -ccn Final-Project -ccp ../../Final-Project/Chaincode/ -ccl go -c ticketchannel -ccv 2.0 -ccs 2
+
+
+
+
