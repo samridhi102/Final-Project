@@ -270,7 +270,7 @@ peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.tic
 peer chaincode query -C $CHANNEL_NAME -n Final-Project -c '{"Args":["ReadOrder","ORD201"]}'
 
 
------------------Invoke tickets---------------------
+-----------------Create tickets---------------------
 
 peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C ticketchannel -n Final-Project --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT -c '{"function":"CreateTicket","Args":["T-01", "Concert", "Event01", "Organiser", "22/09/2023","500.00" ]}'
 
@@ -283,6 +283,8 @@ peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.tic
 peer chaincode query -C ticketchannel -n Final-Project -c '{"Args":["GetTicketsByRange", "T-01", "T-03"]}'
 
 peer chaincode query -C ticketchannel -n Final-Project -c '{"Args":["GetTicketHistory", "T-01"]}'
+
+peer chaincode query -C ticketchannel -n Final-Project -c '{"Args":["GetTicketsWithPagination", "5", ""]}'
 
 peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C ticketchannel -n Final-Project --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT -c '{"Args":["DeleteTicket","T-01"]}'
 
@@ -319,45 +321,4 @@ docker system prune
 docker volume prune
 
 docker network prune
-
-///Run using startNetwork.sh script
-
-//Build startNetwork.sh script file
-
-chmod +x startNetwork.sh
-
-./startNetwork.sh
-
-//To submit transaction as organiserMSP
-
-export CHANNEL_NAME=ticketchannel
-export FABRIC_CFG_PATH=./peercfg
-export CORE_PEER_LOCALMSPID=organiserMSP
-export CORE_PEER_TLS_ENABLED=true
-export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/organiser.ticket.com/peers/peer0.organiser.ticket.com/tls/ca.crt
-export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/organiser.ticket.com/users/Admin@organiser.ticket.com/msp
-export CORE_PEER_ADDRESS=localhost:7051
-export ORDERER_CA=${PWD}/organizations/ordererOrganizations/ticket.com/orderers/orderer.ticket.com/msp/tlscacerts/tlsca.ticket.com-cert.pem
-export ORG1_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/organiser.ticket.com/peers/peer0.organiser.ticket.com/tls/ca.crt
-export ORG2_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/reseller.ticket.com/peers/peer0.reseller.ticket.com/tls/ca.crt
-export ORG3_PEER_TLSROOTCERT=${PWD}/organizations/peerOrganizations/attendee.ticket.com/peers/peer0.attendee.ticket.com/tls/ca.crt
-
-peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.ticket.com --tls --cafile $ORDERER_CA -C $CHANNEL_NAME -n KBA-ticket --peerAddresses localhost:7051 --tlsRootCertFiles $ORG1_PEER_TLSROOTCERT --peerAddresses localhost:9051 --tlsRootCertFiles $ORG2_PEER_TLSROOTCERT --peerAddresses localhost:11051 --tlsRootCertFiles $ORG3_PEER_TLSROOTCERT -c '{"function":"CreateTicket","Args":["T2", "Concert", "Event01", "Organiser", "22/09/2023","500.00" ]}'
-
-peer chaincode query -C $CHANNEL_NAME -n KBA-ticket -c '{"Args":["GetAllTickets"]}'
-
-//To stop the network using script file
-
-//Build stopNetwork.sh script file
-
-chmod +x stopNetwork.sh
-
-./stopNetwork.sh
-
-------update chaincode--------------
-
-./startNetwork.sh deployCC -ccn Final-Project -ccp ../../Final-Project/Chaincode/ -ccl go -c ticketchannel -ccv 2.0 -ccs 2
-
-
-
 
