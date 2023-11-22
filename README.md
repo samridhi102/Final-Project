@@ -46,6 +46,11 @@ Commit the chaincode to the channel.
 
 Invoke chaincode functions using peer chaincode invoke commands.
 
-# Step by step commands are written in commands.txt file for manually starting the network and commands(running_throught_script).txt for starting the network from script file.
+
+
+
+
+
+Step by step commands are written in commands.txt file for manually starting the network and commands(running_throught_script).txt for starting the network from script file.
 
 
